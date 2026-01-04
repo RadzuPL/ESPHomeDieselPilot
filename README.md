@@ -410,3 +410,6 @@ MIT License - użyj jak chcesz, na własną odpowiedzialność!
 ![IMG_20260104_011052](https://github.com/user-attachments/assets/754c2dc5-4aaf-4fa1-8733-226128dfb8b9)
 
 ![IMG_20260104_011710_1](https://github.com/user-attachments/assets/a967f4d3-b575-4444-8526-6d1ad2ea6515)
+
+<img width="1646" height="809" alt="Zrzut ekranu 2026-01-03 223648" src="https://github.com/user-attachments/assets/e891a126-e5c3-4028-9862-442967b66352" />
+
