@@ -17,12 +17,7 @@
 Use at your own risk!!!!
 
 
-Files:
-**DieselPilot.ino** - Application code
 
-**ForNerds.md** - Communication protocol analysis, tools and debugging
-
-**HomeAssistantMQTT.txt** - MQTT configuration file for HA
 
 Compatibility:
 I tested two controllers with red and black remote controls, both of which work correctly.
@@ -37,6 +32,13 @@ I tested two controllers with red and black remote controls, both of which work 
 - 🔗 **Pairing** - automatic and manual
 - 🎮 **Control** - POWER, UP, DOWN, MODE
 - 💾 **NVS Memory** - configuration survives reset
+
+Files:
+- **DieselPilot.ino** - Application code
+
+- **ForNerds.md** - Communication protocol analysis, tools and debugging
+
+- **HomeAssistantMQTT.txt** - MQTT configuration file for HA
 
 ### 🛠️ Required Hardware
 
