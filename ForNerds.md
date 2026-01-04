@@ -304,7 +304,7 @@ rtl_433 -f 433920000 -s 250000 -R 0 \
 
 **How spectrum should look:**
 ```
-[Image will be here - upload later]
+<img width="162" height="590" alt="Zrzut ekranu 2026-01-03 003551" src="https://github.com/user-attachments/assets/cdc9303c-eb2e-413a-a8aa-24f68bc08338" />
 
 Correct signal:
 - Center frequency: 433.92 MHz
@@ -616,7 +616,8 @@ rtl_433 -f 433920000 -s 250000 -R 0 \
 
 **Jak powinno wyglądać widmo:**
 ```
-[Tutaj będzie zdjęcie widma - upload later]
+<img width="162" height="590" alt="Zrzut ekranu 2026-01-03 003551" src="https://github.com/user-attachments/assets/cdc9303c-eb2e-413a-a8aa-24f68bc08338" />
+
 
 Prawidłowy sygnał:
 - Centralna częstotliwość: 433.92 MHz
