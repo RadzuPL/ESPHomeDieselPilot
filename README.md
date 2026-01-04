@@ -19,7 +19,9 @@ Use at your own risk!!!!
 
 Files:
 **DieselPilot.ino** - Application code
+
 **ForNerds.md** - Communication protocol analysis, tools and debugging
+
 **HomeAssistantMQTT.txt** - MQTT configuration file for HA
 
 Compatibility:
@@ -225,7 +227,9 @@ Używasz na własne ryzyko !!!!
 
 Pliki:
 **DieselPilot.ino** - Kod aplikacji
+
 **ForNerds.md** - Analiza protokołu komunikacji, narzędzia i debug
+
 **HomeAsistantMQTT.txt** - Plik konfiguracji MQTT dla HA
 
 Kompatybilność:
