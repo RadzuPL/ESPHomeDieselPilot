@@ -13,6 +13,7 @@
 
 
 <img width="882" height="776" alt="Zrzut ekranu 2026-01-04 022007" src="https://github.com/user-attachments/assets/c2cef19e-e951-46b3-9e6f-20fe6c7df986" />
+
 ⚠️ **IMPORTANT:** 
 Use at your own risk!!!!
 
