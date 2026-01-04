@@ -304,14 +304,15 @@ rtl_433 -f 433920000 -s 250000 -R 0 \
 
 **How spectrum should look:**
 ```
-<img width="162" height="590" alt="Zrzut ekranu 2026-01-03 003551" src="https://github.com/user-attachments/assets/cdc9303c-eb2e-413a-a8aa-24f68bc08338" />
-
 Correct signal:
 - Center frequency: 433.92 MHz
 - Bandwidth: ~100-150 kHz
 - FSK modulation visible as "two peaks"
 - Burst every ~3 seconds (STATUS packets)
 ```
+<img width="162" height="590" alt="Zrzut ekranu 2026-01-03 003551" src="https://github.com/user-attachments/assets/854149c3-e2e2-47ab-a323-22ddcae314fa" />
+
+<img width="314" height="276" alt="Zrzut ekranu 2025-12-28 010813" src="https://github.com/user-attachments/assets/ec14aafc-8ced-4ec2-92ba-68daa24c2d98" />
 
 ---
 
@@ -616,12 +617,13 @@ rtl_433 -f 433920000 -s 250000 -R 0 \
 
 **Jak powinno wyglądać widmo:**
 ```
-<img width="162" height="590" alt="Zrzut ekranu 2026-01-03 003551" src="https://github.com/user-attachments/assets/cdc9303c-eb2e-413a-a8aa-24f68bc08338" />
-
-
 Prawidłowy sygnał:
 - Centralna częstotliwość: 433.92 MHz
 - Szerokość pasma: ~100-150 kHz
 - Modulacja FSK widoczna jako "dwa szczyty"
 - Burst co ~3 sekundy (STATUS packets)
 ```
+
+<img width="162" height="590" alt="Zrzut ekranu 2026-01-03 003551" src="https://github.com/user-attachments/assets/854149c3-e2e2-47ab-a323-22ddcae314fa" />
+
+<img width="314" height="276" alt="Zrzut ekranu 2025-12-28 010813" src="https://github.com/user-attachments/assets/ec14aafc-8ced-4ec2-92ba-68daa24c2d98" />
