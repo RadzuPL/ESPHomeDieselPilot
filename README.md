@@ -11,7 +11,6 @@
 
 **Diesel Pilot** is a fully-featured ESP32 controller for Chinese diesel heaters communicating via 433 MHz RF. The project enables full heater control through a web browser, MQTT, and integration with Home Assistant.
 
-
 <img width="882" height="776" alt="Zrzut ekranu 2026-01-04 022007" src="https://github.com/user-attachments/assets/c2cef19e-e951-46b3-9e6f-20fe6c7df986" />
 
 ⚠️ **IMPORTANT:** 
@@ -22,6 +21,10 @@ Files:
 **DieselPilot.ino** - Application code
 **ForNerds.md** - Communication protocol analysis, tools and debugging
 **HomeAssistantMQTT.txt** - MQTT configuration file for HA
+
+Compatibility:
+I tested two controllers with red and black remote controls, both of which work correctly.
+![IMG_20260103_165719](https://github.com/user-attachments/assets/43ec8d9f-6b02-4b90-9055-03c66882fab7)
 
 ### ✨ Features
 
@@ -210,6 +213,8 @@ MIT License - use as you wish, at your own risk!
 
 **Diesel Pilot** to pełnoprawny kontroler ESP32 dla chińskich ogrzewaczy diesla komunikujących się przez RF 433 MHz. Projekt umożliwia pełną kontrolę ogrzewacza przez przeglądarkę internetową, MQTT oraz integrację z Home Assistant.
 
+<img width="882" height="776" alt="Zrzut ekranu 2026-01-04 022007" src="https://github.com/user-attachments/assets/c2cef19e-e951-46b3-9e6f-20fe6c7df986" />
+
 ⚠️ **WAŻNE:** 
 Używasz na własne ryzyko !!!!
 
@@ -218,6 +223,10 @@ Pliki:
 **DieselPilot.ino** - Kod aplikacji
 **ForNerds.md** - Analiza protokołu komunikacji, narzędzia i debug
 **HomeAsistantMQTT.txt** - Plik konfiguracji MQTT dla HA
+
+Kompatybilność:
+Przetestowałem 2 sterowniki z czerwonym i czarnym kolorem pilota, oba działają poprawnie.
+![IMG_20260103_165719](https://github.com/user-attachments/assets/43ec8d9f-6b02-4b90-9055-03c66882fab7)
 
 ### ✨ Funkcje
 
