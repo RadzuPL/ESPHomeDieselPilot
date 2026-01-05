@@ -413,7 +413,7 @@ MIT License - użyj jak chcesz, na własną odpowiedzialność!
 
 <img width="882" height="776" alt="Zrzut ekranu 2026-01-04 022007" src="https://github.com/user-attachments/assets/c2cef19e-e951-46b3-9e6f-20fe6c7df986" />
 
-<img width="707" height="933" alt="image" src="https://github.com/user-attachments/assets/3e8de1fa-c899-4364-b561-8d86b8930d4d" />
+<img width="643" height="944" alt="Zrzut ekranu 2026-01-05 151325" src="https://github.com/user-attachments/assets/e2bd8273-1ace-4bec-9c46-a75536e3ab33" />
 
 ![IMG_20260104_011052](https://github.com/user-attachments/assets/754c2dc5-4aaf-4fa1-8733-226128dfb8b9)
 
