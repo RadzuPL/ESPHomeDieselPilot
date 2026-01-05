@@ -19,7 +19,15 @@
  * - SH1106 OLED (I2C)
  * 
  * ═══════════════════════════════════════════════════════════════════════════
+ *                      Version: V1.1
+ * ═══════════════════════════════════════════════════════════════════════════
+ *Changes:
+ * - Added optional MQTT authentication.
+ * - Added host name (the host name is also the device name in MQTT, the publication topic can be set as before).
+ * - Added restart button.
+ * - Added MQTT retry mechanism (no more esp failures after incorrect configuration).
  */
+
 
 #include <WiFi.h>
 #include <WebServer.h>
@@ -87,9 +95,13 @@ String staPassword = "";
 bool useAP = true;
 
 // MQTT
+String deviceName = "DieselPilot";
 String mqttServer = "";
 int mqttPort = 1883;
 String mqttTopic = "diesel";
+String mqttUser = "";
+String mqttPassword = "";
+bool mqttAuthEnabled = false;
 bool mqttEnabled = false;
 
 // Heater
@@ -116,6 +128,12 @@ String displayLine1 = "Diesel Pilot";
 String displayLine2 = "Initializing...";
 String displayLine3 = "";
 String displayLine4 = "";
+
+// Timing
+unsigned long lastUpdate = 0;
+unsigned long lastDisplay = 0;
+unsigned long lastMQTTRetry = 0;
+const unsigned long mqttRetryInterval = 30000; // Retry MQTT every 30 seconds if disconnected
 
 // ═══════════════════════════════════════════════════════════════════════════
 // CC1101 LOW-LEVEL FUNCTIONS
@@ -417,13 +435,46 @@ void mqttCallback(char* topic, byte* payload, unsigned int length) {
 void connectMQTT() {
     if(!mqttEnabled || mqttServer.length() == 0) return;
     
+    // Disconnect if already connected
+    if(mqtt.connected()) {
+        mqtt.disconnect();
+        delay(100);
+    }
+    
     mqtt.setServer(mqttServer.c_str(), mqttPort);
     mqtt.setCallback(mqttCallback);
+    mqtt.setBufferSize(512);  // Increase buffer for auth
     
-    if(mqtt.connect("DieselPilot")) {
-        Serial.println("✅ MQTT connected");
-        mqtt.subscribe((mqttTopic + "/cmd/#").c_str());
+    // Try connecting with retry mechanism
+    const int maxRetries = 3;
+    const int retryDelay = 2000; // 2 seconds between retries
+    
+    for(int attempt = 1; attempt <= maxRetries; attempt++) {
+        Serial.print("MQTT connection attempt " + String(attempt) + "/" + String(maxRetries) + "... ");
+        
+        bool connected = false;
+        if(mqttAuthEnabled) {
+            connected = mqtt.connect(deviceName.c_str(), mqttUser.c_str(), mqttPassword.c_str());
+        } else {
+            connected = mqtt.connect(deviceName.c_str());
+        }
+        
+        if(connected) {
+            Serial.println("✅ Connected!");
+            mqtt.subscribe((mqttTopic + "/cmd/#").c_str());
+            return; // Success - exit function
+        } else {
+            Serial.println("❌ Failed (State: " + String(mqtt.state()) + ")");
+            
+            if(attempt < maxRetries) {
+                Serial.println("Retrying in " + String(retryDelay/1000) + " seconds...");
+                delay(retryDelay);
+            }
+        }
     }
+    
+    // All retries failed
+    Serial.println("⚠️ MQTT connection failed after " + String(maxRetries) + " attempts. Continuing without MQTT.");
 }
 
 void publishMQTT() {
@@ -603,6 +654,57 @@ void handleRoot() {
             color:#888;
         }
         .info-box strong { color:#ff6b00; }
+        
+        /* TOGGLE SWITCH */
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+            gap: 15px;
+        }
+        .toggle-switch {
+            position: relative;
+            width: 60px;
+            height: 30px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #333;
+            transition: .3s;
+            border-radius: 30px;
+        }
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 22px;
+            width: 22px;
+            left: 4px;
+            bottom: 4px;
+            background-color: #888;
+            transition: .3s;
+            border-radius: 50%;
+        }
+        input:checked + .toggle-slider {
+            background-color: #ff6b00;
+        }
+        input:checked + .toggle-slider:before {
+            transform: translateX(30px);
+            background-color: white;
+        }
+        .toggle-label {
+            font-size: 1em;
+            color: #e0e0e0;
+        }
     </style>
 </head>
 <body>
@@ -695,10 +797,12 @@ void handleRoot() {
             <!-- WIFI CONFIG -->
             <div class="card">
                 <h2>📡 WiFi Configuration</h2>
+                <input type="text" id="deviceName" placeholder="Hostname (e.g., DieselPilot-Garage)">
                 <input type="text" id="wifiSSID" placeholder="Your WiFi SSID">
                 <input type="password" id="wifiPass" placeholder="WiFi Password">
                 <button class="btn" onclick="saveWiFi()">💾 SAVE & REBOOT</button>
                 <div class="info-box">
+                    <strong>📛 Hostname:</strong> Device name used for WiFi hostname and MQTT Client ID.<br>
                     <strong>ℹ️ Note:</strong> After saving, ESP32 will reboot and connect to your WiFi.<br>
                     If connection fails, it will fall back to AP mode.
                 </div>
@@ -712,6 +816,17 @@ void handleRoot() {
                     <input type="number" id="mqttPort" placeholder="Port" value="1883">
                     <input type="text" id="mqttTopic" placeholder="Topic (e.g., diesel)">
                 </div>
+                <div class="toggle-container">
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="mqttAuthEnabled" onchange="toggleMQTTAuth()">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="toggle-label">Authentication Required</span>
+                </div>
+                <div id="mqttAuthFields" style="display: none;">
+                    <input type="text" id="mqttUser" placeholder="Username">
+                    <input type="password" id="mqttPass" placeholder="Password">
+                </div>
                 <button class="btn" onclick="saveMQTT()">💾 SAVE MQTT</button>
                 <div class="info-box">
                     <strong>🏠 Home Assistant:</strong> Configure MQTT broker IP and topic.<br>
@@ -723,10 +838,15 @@ void handleRoot() {
             <div class="card">
                 <h2>ℹ️ System Info</h2>
                 <div style="font-family: monospace; font-size: 0.9em; line-height: 1.6;">
+                    <div>Hostname: <span id="hostname">-</span></div>
                     <div>WiFi Mode: <span id="wifiMode">-</span></div>
                     <div>IP Address: <span id="ipAddr">-</span></div>
                     <div>MQTT: <span id="mqttStatus">-</span></div>
                     <div>Uptime: <span id="uptime">-</span></div>
+                </div>
+                <button class="btn" onclick="rebootDevice()" style="margin-top: 15px; background: #d32f2f;">🔄 REBOOT DEVICE</button>
+                <div class="info-box">
+                    <strong>⚠️ Warning:</strong> Device will restart immediately. Use after config changes.
                 </div>
             </div>
             
@@ -789,6 +909,7 @@ void handleRoot() {
             fetch('/api/info')
                 .then(r => r.json())
                 .then(d => {
+                    document.getElementById('hostname').innerText = d.hostname;
                     document.getElementById('wifiMode').innerText = d.wifiMode;
                     document.getElementById('ipAddr').innerText = d.ip;
                     document.getElementById('mqttStatus').innerText = d.mqtt;
@@ -812,10 +933,12 @@ void handleRoot() {
         }
         
         function saveWiFi() {
+            let deviceName = document.getElementById('deviceName').value;
             let ssid = document.getElementById('wifiSSID').value;
             let pass = document.getElementById('wifiPass').value;
             if(confirm('Save WiFi config and reboot?')) {
-                fetch('/api/wifi?ssid=' + encodeURIComponent(ssid) + '&pass=' + encodeURIComponent(pass))
+                fetch('/api/wifi?deviceName=' + encodeURIComponent(deviceName) + 
+                      '&ssid=' + encodeURIComponent(ssid) + '&pass=' + encodeURIComponent(pass))
                     .then(r => r.text()).then(msg => {
                         alert(msg);
                         setTimeout(() => location.reload(), 2000);
@@ -823,12 +946,32 @@ void handleRoot() {
             }
         }
         
+        function toggleMQTTAuth() {
+            let authFields = document.getElementById('mqttAuthFields');
+            let checkbox = document.getElementById('mqttAuthEnabled');
+            authFields.style.display = checkbox.checked ? 'block' : 'none';
+        }
+        
         function saveMQTT() {
             let server = document.getElementById('mqttServer').value;
             let port = document.getElementById('mqttPort').value;
             let topic = document.getElementById('mqttTopic').value;
-            fetch('/api/mqtt?server=' + server + '&port=' + port + '&topic=' + topic)
+            let authEnabled = document.getElementById('mqttAuthEnabled').checked ? '1' : '0';
+            let user = document.getElementById('mqttUser').value;
+            let pass = document.getElementById('mqttPass').value;
+            
+            fetch('/api/mqtt?server=' + server + '&port=' + port + '&topic=' + topic + 
+                  '&authEnabled=' + authEnabled + '&user=' + encodeURIComponent(user) + 
+                  '&pass=' + encodeURIComponent(pass))
                 .then(r => r.text()).then(alert);
+        }
+        
+        function rebootDevice() {
+            if(confirm('Reboot device now?')) {
+                fetch('/api/reboot').then(() => {
+                    alert('Device rebooting... Wait 10 seconds and refresh page.');
+                });
+            }
         }
         
         // Auto-refresh
@@ -889,10 +1032,15 @@ void handleAPI_PairManual() {
 }
 
 void handleAPI_WiFi() {
+    deviceName = server.arg("deviceName");
+    if(deviceName.length() == 0) deviceName = "DieselPilot"; // default
     staSSID = server.arg("ssid");
     staPassword = server.arg("pass");
+    
+    prefs.putString("deviceName", deviceName);
     prefs.putString("staSSID", staSSID);
     prefs.putString("staPass", staPassword);
+    
     server.send(200, "text/plain", "WiFi saved! Reboot to connect.");
 }
 
@@ -900,14 +1048,23 @@ void handleAPI_MQTT() {
     mqttServer = server.arg("server");
     mqttPort = server.arg("port").toInt();
     mqttTopic = server.arg("topic");
+    mqttAuthEnabled = (server.arg("authEnabled") == "1");
+    mqttUser = server.arg("user");
+    mqttPassword = server.arg("pass");
     mqttEnabled = (mqttServer.length() > 0);
     
     prefs.putString("mqttServer", mqttServer);
     prefs.putInt("mqttPort", mqttPort);
     prefs.putString("mqttTopic", mqttTopic);
+    prefs.putBool("mqttAuthEn", mqttAuthEnabled);
+    prefs.putString("mqttUser", mqttUser);
+    prefs.putString("mqttPass", mqttPassword);
     prefs.putBool("mqttEnabled", mqttEnabled);
     
-    server.send(200, "text/plain", "MQTT saved! Reconnecting...");
+    // Update WiFi hostname (in case it changed)
+    WiFi.setHostname(deviceName.c_str());
+    
+    server.send(200, "text/plain", "MQTT saved!");
     
     if(mqttEnabled) {
         connectMQTT();
@@ -916,12 +1073,19 @@ void handleAPI_MQTT() {
 
 void handleAPI_Info() {
     String json = "{";
+    json += "\"hostname\":\"" + deviceName + "\",";
     json += "\"wifiMode\":\"" + String(useAP ? "AP" : "STA") + "\",";
     json += "\"ip\":\"" + (useAP ? WiFi.softAPIP().toString() : WiFi.localIP().toString()) + "\",";
     json += "\"mqtt\":\"" + String(mqttEnabled && mqtt.connected() ? "Connected" : "Disconnected") + "\",";
     json += "\"uptime\":\"" + String(millis() / 1000 / 60) + " min\"";
     json += "}";
     server.send(200, "application/json", json);
+}
+
+void handleAPI_Reboot() {
+    server.send(200, "text/plain", "Rebooting...");
+    delay(500);
+    ESP.restart();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -943,8 +1107,11 @@ void setup() {
     display.setContrast(255);
     displayLine1 = "Diesel Pilot";
     displayLine2 = "Starting...";
+    displayLine3 = "Made by PPTG";
+    displayLine4 = "Happy Heating :)";
     updateDisplay();
     Serial.println("✅ OLED initialized");
+    delay(1000);
 #else
     Serial.println("ℹ️  OLED disabled");
 #endif
@@ -953,11 +1120,15 @@ void setup() {
     prefs.begin("diesel", false);
     heaterAddress = prefs.getUInt("heaterAddr", 0);
     heaterPaired = (heaterAddress != 0);
+    deviceName = prefs.getString("deviceName", "DieselPilot");
     staSSID = prefs.getString("staSSID", "");
     staPassword = prefs.getString("staPass", "");
     mqttServer = prefs.getString("mqttServer", "");
     mqttPort = prefs.getInt("mqttPort", 1883);
     mqttTopic = prefs.getString("mqttTopic", "diesel");
+    mqttAuthEnabled = prefs.getBool("mqttAuthEn", false);
+    mqttUser = prefs.getString("mqttUser", "");
+    mqttPassword = prefs.getString("mqttPass", "");
     mqttEnabled = prefs.getBool("mqttEnabled", false);
     
     // Init CC1101
@@ -970,6 +1141,8 @@ void setup() {
     cc1101_init();
     
     // Init WiFi
+    WiFi.setHostname(deviceName.c_str());  // Set hostname for mDNS
+    
     if(staSSID.length() > 0) {
         Serial.println("Connecting to WiFi: " + staSSID);
         displayLine2 = "WiFi: " + staSSID;
@@ -1022,6 +1195,7 @@ void setup() {
     server.on("/api/pair/manual", handleAPI_PairManual);
     server.on("/api/wifi", handleAPI_WiFi);
     server.on("/api/mqtt", handleAPI_MQTT);
+    server.on("/api/reboot", handleAPI_Reboot);
     server.begin();
     
     Serial.println("\n✅ Web server started");
@@ -1039,10 +1213,14 @@ void loop() {
     yield();
     server.handleClient();
     
+    // MQTT reconnect with timer (only retry every 30 seconds)
     if(mqttEnabled && !mqtt.connected()) {
-        connectMQTT();
+        if(millis() - lastMQTTRetry > mqttRetryInterval) {
+            lastMQTTRetry = millis();
+            connectMQTT();
+        }
     }
-    if(mqttEnabled) {
+    if(mqttEnabled && mqtt.connected()) {
         mqtt.loop();
     }
     
