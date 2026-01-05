@@ -32,10 +32,10 @@ I tested two controllers with red and black remote controls, both of which work 
 
 ### ⚙️ Changes
 Release V1.1
--Added MQTT authentication option
--Added reboot button
--Fixed stability with incorrect MQTT data
--Added Hostname field (Hostname is also the name of the MQTT device, the topic is set as before)
+- Added MQTT authentication option
+- Added reboot button
+- Fixed stability with incorrect MQTT data
+- Added Hostname field (Hostname is also the name of the MQTT device, the topic is set as before)
 
 Files:
 - **DieselPilot.ino** - Application code
@@ -242,11 +242,11 @@ Przetestowałem 2 sterowniki z czerwonym i czarnym kolorem pilota, oba działaj�
 
 ### ⚙️ Changes
 
-   Wydanie V1.1
-   -Dodałem opcję uwierzytelniania MQTT
-   -Dodałem przycisk reboot
-   -Naprawiłem stabilność przy błędnych danych MQTT
-   -Dodałem pole Hostname (Hostname to także nazwa urządzenia MQTT, temat ustawiamy jak dotychczas)
+Wydanie V1.1
+- Dodałem opcję uwierzytelniania MQTT
+- Dodałem przycisk reboot
+- Naprawiłem stabilność przy błędnych danych MQTT
+- Dodałem pole Hostname (Hostname to także nazwa urządzenia MQTT, temat ustawiamy jak dotychczas)
 
 Pliki:
 - **DieselPilot.ino** - Kod aplikacji
