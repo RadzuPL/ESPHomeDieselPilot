@@ -18,9 +18,10 @@ Use at your own risk!!!!
 
 ### 🔧 Compatibility:
 
-I tested controllers with the 🔧 symbol as the upper left button one had a red remote control and the other had a black one, and both work.
-There is also a version of the controller with a sun symbol; it is possible to add support as soon as I manage to buy one and map the data frames from the radio.
-However, I currently only support versions with the 🔧 symbol. 
+I tested two controllers with 🔧 as the upper left button,
+one had a red remote control, the other a black one, both work.There is also a version of the controller with a sun symbol.
+It is possible to add support as soon as I manage to buy one and map the data frames from the radio.
+However, I currently only support versions with the 🔧 symbol!!! 
 
 ![edited](https://github.com/user-attachments/assets/3b78064b-d00a-4f14-a39b-06667b446803)
 
