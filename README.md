@@ -16,9 +16,14 @@ Use at your own risk!!!!
 
 <img width="882" height="776" alt="Zrzut ekranu 2026-01-04 022007" src="https://github.com/user-attachments/assets/c2cef19e-e951-46b3-9e6f-20fe6c7df986" />
 
-Compatibility:
-I tested two controllers with red and black remote controls, both of which work correctly.
-![IMG_20260103_165719](https://github.com/user-attachments/assets/c7b77a5e-0064-4786-9fc8-64148ab031be)
+### 🔧 Compatibility:
+
+I tested controllers with the 🔧 symbol as the upper left button one had a red remote control and the other had a black one, and both work.
+There is also a version of the controller with a sun symbol; it is possible to add support as soon as I manage to buy one and map the data frames from the radio.
+However, I currently only support versions with the 🔧 symbol. 
+
+![edited](https://github.com/user-attachments/assets/3b78064b-d00a-4f14-a39b-06667b446803)
+
 
 ### ✨ Features
 
@@ -227,10 +232,15 @@ Używasz na własne ryzyko !!!!
 
 <img width="882" height="776" alt="Zrzut ekranu 2026-01-04 022007" src="https://github.com/user-attachments/assets/c2cef19e-e951-46b3-9e6f-20fe6c7df986" />
 
-Kompatybilność:
+### 🔧 Kompatybilność:
 
-Przetestowałem 2 sterowniki z czerwonym i czarnym kolorem pilota, oba działają poprawnie.
-![IMG_20260103_165719](https://github.com/user-attachments/assets/c7b77a5e-0064-4786-9fc8-64148ab031be)
+Przetestowałem dwa kontrolery zawierające 🔧 jako górny lewy przycisk,
+jeden miał pilot czerwony drugi czarny oba działają.
+Jest jeszcze wersja sterownika z symbolem słońca jest możliwe dodanie wsparcia jak tylko uda mi się taki kupić i zmapować ramki danych  z radia,
+Natomiast aktualnie wspieram tylko wersje z symbolem 🔧!!! 
+
+![edited](https://github.com/user-attachments/assets/b8a33a3f-0c65-4451-8a56-ab2ca61467db)
+
 
 ### ✨ Funkcje
 
