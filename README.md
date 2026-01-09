@@ -51,7 +51,7 @@ Files:
 
 - **HomeAssistantMQTT.txt** - MQTT configuration file for HA
 
-- Compatibility.md - File with detailed photos, compatibility description
+- **Compatibility.md** - File with detailed photos, compatibility description
 
 - **tools** - The “tools” folder contains helpful programs that allow you to determine the correct connection of the cc1101 module,
  detect the current frequency of the remote control, and tune to the required frequency. 
@@ -286,7 +286,7 @@ Pliki:
 
 - **ForNerds.md** - Analiza protokołu komunikacji, narzędzia i debug
 
-- Compatibility.md - Plik z dokładnymi zdjęciami, opisem kompatybilności
+- **Compatibility.md** - Plik z dokładnymi zdjęciami, opisem kompatybilności
 
 - **HomeAsistantMQTT.txt** - Plik konfiguracji MQTT dla HA
 
