@@ -21,7 +21,8 @@ Use at your own risk!!!!
 - I tested two controllers with 🔧 as the upper left button,one had a red remote control, the other a black one, both works.
 - There is also a version of the controller with a ☀️ symbol.
 - It is possible to add support as soon as I manage to buy one and map the data frames from the radio.
-- However, I currently only support versions with the 🔧 symbol!!! 
+- However, I currently only support versions with the 🔧 symbol!!!
+- You can find out more in the Compatibility.md file
 
 ![edited](https://github.com/user-attachments/assets/3b78064b-d00a-4f14-a39b-06667b446803)
 
@@ -49,6 +50,8 @@ Files:
 - **ForNerds.md** - Communication protocol analysis, used tools and debugging
 
 - **HomeAssistantMQTT.txt** - MQTT configuration file for HA
+
+- Compatibility.md - File with detailed photos, compatibility description
 
 - **tools** - The “tools” folder contains helpful programs that allow you to determine the correct connection of the cc1101 module,
  detect the current frequency of the remote control, and tune to the required frequency. 
@@ -255,7 +258,8 @@ Używasz na własne ryzyko !!!!
 
 - Przetestowałem dwa kontrolery zawierające 🔧 jako górny lewy przycisk, jeden miał pilot czerwony drugi czarny oba działają.
 - Jest jeszcze wersja sterownika z symbolem ☀️ jest możliwe dodanie wsparcia jak tylko uda mi się taki kupić i zmapować ramki danych  z radia,
-- Natomiast aktualnie wspieram tylko wersje z symbolem 🔧!!! 
+- Natomiast aktualnie wspieram tylko wersje z symbolem 🔧!!!
+- Możesz dowiedzieć się więcej w pliku Compatibility.md
 
 ![edited](https://github.com/user-attachments/assets/b8a33a3f-0c65-4451-8a56-ab2ca61467db)
 
@@ -281,6 +285,8 @@ Pliki:
 - **DieselPilot.ino** - Kod aplikacji
 
 - **ForNerds.md** - Analiza protokołu komunikacji, narzędzia i debug
+
+- Compatibility.md - Plik z dokładnymi zdjęciami, opisem kompatybilności
 
 - **HomeAsistantMQTT.txt** - Plik konfiguracji MQTT dla HA
 
