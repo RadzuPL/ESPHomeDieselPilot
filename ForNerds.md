@@ -9,7 +9,17 @@
 
 ### 📡 RF Protocol
 
-### ⚠️ The protocol documentation is being created, may be inaccurate, and may contain errors! Updates coming soon :) ### 
+### ⚠️ The protocol documentation is being created, may be inaccurate ### 
+
+### 🔑 Communication Fundamentals (Read First!)
+
+This is the key to understanding the entire protocol:
+
+* **The heater controller does NOT have its own address** in RF communication
+* **Address in bytes [2-5] of every packet** is ALWAYS the **REMOTE CONTROL address**
+* **Controller uses WHITELIST mechanism** for authorized remote addresses
+* **Commands are accepted ONLY if** address = whitelist
+* **DieselPilot works as a clone** (impersonation) of a paired remote
 
 #### Parameters
 - **Frequency:** 433.937 MHz
@@ -35,6 +45,9 @@
 [16-20] = Internal data
 [21-22] = CRC-16/MODBUS
 ```
+**Packet types:**
+- **0x00** = Normal STATUS (during operation)
+- **0xAA** = DISCOVERY/PAIRING mode (only when holding PAIRING button)
 
 #### COMMAND Packet Structure (9 bytes)
 ```
@@ -81,6 +94,20 @@
 | `0x07` | SHUTTING_DOWN | Shutting down |
 | `0x08` | COOLING | Cooling |
 
+
+### 🔐 Whitelist & Controller Versions
+
+| Feature | V2 "Wrench" | V1 "SUN" |
+|---------|-------------|----------|
+| **Whitelist slots** | 1 | 2 |
+| **New pairing** | Overwrites | Fills available slot |
+| **Address cloning** | Yes | Optional |
+| **Support status** | ✅ Stable | ⚠️ Development |
+
+**DieselPilot compatibility:**
+- **V2:** Clones existing remote address → both work simultaneously ✅
+- **V1:** support in development ⚠️
+
 ### 🔬 Advanced Protocol Details
 
 #### Authentication and Security
@@ -124,24 +151,54 @@ Payload:  [Data packet - ready bytes]
 
 ### 🔗 Pairing
 
-#### How Does Pairing Work?
+#### 🔄 Auto-Pairing Process
 
-Pairing is a special communication mode where:
+```
+1. Hold PAIRING button on heater panel (5 seconds)
+2. Heater broadcasts: [17][AA][CA00445B][00000085]... 
+                            └─ Type 0xAA = pairing/discovery mode
+3. DieselPilot captures remote address from bytes [2-5]
+4. Saves as "own" address in memory
+5. Sends commands: [09][2B][CA00445B][seq][CRC]
+6. Controller accepts ✓ (address matches whitelist)
+```
 
-1. **Heater sends special STATUS frame:**
-   - Address: `0x00000000` (broadcast) OR special pairing address
-   - STATUS packet is sent in "discovery" mode
-   - Original remote listens for these frames for ~60 seconds
+**Why both DieselPilot and original remote work:**
+```
+Original Remote    DieselPilot       Heater Controller
+(0xCA00445B)       (0xCA00445B)      (Whitelist: 0xCA00445B)
+     │                  │                    │
+     │    ──[POWER]──>  │     ──[POWER]──>   │  ✓ Accepted
+     │   <──[STATUS]──  │    <──[STATUS]──   │
+     └── Both use SAME address → both work! 
+```
+Controller cannot distinguish the source — it only checks the address!
 
-2. **Remote responds with verification:**
-   - After receiving STATUS frame, remote verifies "authentication signature"
-   - Checks if packet comes from real heater (not fake)
-   - If verification OK → saves address and switches to normal operation
+#### ✏️ Manual Pairing
 
-3. **Authentication:**
-   - Heater uses special signature bytes in STATUS packet
-   - Remote checks bytes `[16-20]` + counter in `[6]`
-   - Only real heaters can generate correct signature
+**Step 1: Find the remote address**
+```bash
+# Listen with RTL-SDR during normal operation
+rtl_433 -f 433920000 -s 250000 -R 0 \
+  -X "n=heater,m=FSK_PCM,s=100,l=100,r=10000,preamble=aa"
+
+# Find STATUS packet (type 0x00):
+7e3c7e3c 17 00 CA 00 44 5B 05 01 ...
+               ^─────────^ remote address!
+```
+
+**Step 2: Enter in DieselPilot**
+- Manual Pair field: `0xCA00445B`
+- Click MANUAL PAIR
+- Done! DieselPilot will impersonate this remote
+
+**⚠️ Important:**
+- This is the **remote address**, not heater address
+- You're cloning/impersonating existing paired remote
+- Original remote + DieselPilot will both work (same address)
+- If you pair a different remote with heater, this address stops working
+
+---
 
 #### 💡 Interesting Fact - Original Remote Behavior
 
@@ -186,65 +243,6 @@ sendCommand(HEATER_CMD_POWER);  // 0x2B
 - Packet type STATUS: `0x00` (type), `0x17` (23 bytes)
 - Address: 32-bit in bytes [2-5] after sync word
 
-#### Manual Pairing
-
-1. **Find heater address:**
-   - Use RTL-SDR + rtl_433
-   - Listen for STATUS packets
-   - Extract bytes `[2-5]` (big-endian)
-   
-   **Example:**
-   ```
-   STATUS: 17 00 CA 00 44 5B 05 01 ...
-                ^  ^  ^  ^
-                |  |  |  └─ [5] = 0x5B
-                |  |  └──── [4] = 0x44
-                |  └─────── [3] = 0x00
-                └────────── [2] = 0xCA
-   
-   Address = 0xCA00445B
-   ```
-
-2. **Enter in Manual Pair field:** `0xCA00445B`
-3. **Click MANUAL PAIR**
-4. Address will be saved
-
-#### ⚠️ IMPORTANT - Discovery Mode During Pairing
-
-When you **press and hold the pairing button** on the heater, **two types of packets** may appear:
-
-**1. Discovery Packet (type 0xAA)** - appears ONLY during pairing:
-```
-7e3c7e3c 17 AA CA 00 44 5B 00 00 00 85 05 00 04 ...
-         │  │  └─remote addr─┘ └─special─┘
-         │  └─type 0xAA (discovery!)
-         └─23 bytes
-
-```
-- Heater "echoes" the address of the remote that triggered it
-- In bytes [6-9] is code **0x00000085** (pairing mode)
-- **DO NOT use this address for configuration!**
-
-**2. Normal STATUS (type 0x00)** - this is the correct packet:
-```
-7e3c7e3c 17 00 CA 00 44 5B 05 01 00 83 0A ...
-         │  │  └──your address──┘
-         │  └─type 0x00 (normal STATUS)
-         └─23 bytes
-```
-- Address in bytes [2-5] is **correct heater address**
-- Use this address for configuration!
-
-**How to verify?**
-```bash
-# Run rtl_433 and wait 10 seconds
-# STATUS packets (type 0x00) appear every ~3 seconds
-# Look for sequence: 7e3c7e3c 17 00 ...
-#                                 ^^ type 0x00!
-```
-
-**Note:** Each heater has **unique address** - don't copy address from this README!
-
 
 ## 🛠️ Reverse Engineering and Debugging Tools
 
@@ -280,6 +278,42 @@ rtl_433 -f 433920000 -s 250000 -R 0 \
   "data": "7e3c7e3c1700ca00445b050100830a00981ecd1a..."
 }
 ```
+
+### 📊 Normal STATUS Packet (type 0x00)
+
+**Raw packet:**
+```
+7e3c7e3c 17 00 ca00445b 05 01 00 83 0a 00 98 1e cd 1a 00 00 e2 9c 44 3e ae 00 ed
+```
+
+**Step-by-step decoding:**
+
+| Bytes | Hex | Meaning | Value |
+|-------|-----|---------|-------|
+| **Sync** | `7e 3c 7e 3c` | Sync Word | ✓ Valid |
+| **[0]** | `17` | Packet length | 23 bytes |
+| **[1]** | `00` | Packet type | STATUS (operation) |
+| **[2-5]** | `ca 00 44 5b` | Remote address | 0xCA00445B |
+| **[6]** | `05` | State | RUNNING (5) |
+| **[7]** | `01` | Power | 1% |
+| **[8-9]** | `00 83` | Voltage (BE) | 13.1V (131/10) |
+| **[10]** | `0a` | Ambient temp | 10°C |
+| **[11]** | `00` | Error | OK (0) |
+| **[12]** | `98` | Exchanger temp | 152°C |
+| **[13]** | `1e` | Target temp | 30°C |
+| **[14]** | `cd` | Mode | MANUAL (0xCD) |
+| **[15]** | `1a` | Pump frequency | 2.6 Hz (26/10) |
+| **[16-20]** | `00 00 e2 9c 44` | Signature | [internal data] |
+| **[21-22]** | `3e ae` | CRC | ✓ Valid |
+
+**Interpretation:**
+- 🟢 Heater is **RUNNING**
+- 🔥 Exchanger temperature: **152°C**
+- 🌡️ Ambient temperature: **10°C**
+- 🎯 Target temperature: **30°C**
+- ⚡ Voltage: **13.1V**
+- 🔧 Mode: **MANUAL**, pump **2.6 Hz**
+
 
 ### 📻 SDR# + DVB-T Tuner - Spectrum Visualization
 
@@ -323,7 +357,17 @@ Correct signal:
 
 ### 📡 Protokół RF
 
-### ⚠️ Dokumentacja protokołu powstaje, może być nie precyzyjna i zawierać błędy ! aktualizacje niebawem :) ### 
+### ⚠️ Dokumentacja protokołu powstaje, może być nie precyzyjna ### 
+
+### 🔑 Fundamenty komunikacji (czytaj najpierw!)
+
+To jest klucz do zrozumienia całego protokołu:
+
+* **Sterownik ogrzewacza NIE posiada własnego adresu** w komunikacji RF
+* **Adres w bajtach [2-5] każdego pakietu** to ZAWSZE adres **PILOTA**
+* **Sterownik używa mechanizmu WHITELIST** autoryzowanych adresów pilotów
+* **Komendy są akceptowane tylko**, jeśli adres = whitelist
+* **DieselPilot działa jako klon** (impersonacja) sparowanego pilota
 
 #### Parametry
 - **Częstotliwość:** 433.937 MHz
@@ -349,6 +393,10 @@ Correct signal:
 [16-20] = Dane wewnętrzne
 [21-22] = CRC-16/MODBUS
 ```
+
+**Typy pakietów:**
+- **0x00** = Normalny STATUS (podczas pracy)
+- **0xAA** = Tryb DISCOVERY/PAIRING (tylko przy przytrzymaniu PAIRING)
 
 #### Struktura pakietu COMMAND (9 bajtów)
 ```
@@ -395,6 +443,20 @@ Correct signal:
 | `0x07` | SHUTTING_DOWN | Wyłączanie |
 | `0x08` | COOLING | Chłodzenie |
 
+
+### 🔐 Whitelist i wersje sterowników
+
+| Cecha | V2 "Wrench" | V1 "SUN" |
+|-------|-------------|----------|
+| **Sloty whitelist** | 1 | 2 |
+| **Nowe parowanie** | Nadpisuje | Uzupełnia |
+| **Klonowanie adresu** | Tak | Opcjonalne |
+| **Status wsparcia** | ✅ Stabilne | ⚠️ w rozwoju |
+
+**Kompatybilność DieselPilot:**
+- **V2:** Klonuje adres istniejącego pilota → oba działają jednocześnie ✅
+- **V1:** Wsparcie w rozwoju ⚠️
+
 ### 🔬 Zaawansowane szczegóły protokołu
 
 #### Autentykacja i bezpieczeństwo
@@ -438,24 +500,53 @@ Payload:  [Data packet - gotowe bajty]
 
 ### 🔗 Parowanie
 
-#### Jak działa parowanie?
+#### 🔄 Proces Auto-Parowania
 
-Parowanie to specjalny tryb komunikacji, w którym:
+```
+1. Przytrzymaj przycisk PAIRING na panelu ogrzewacza (5 sekund)
+2. Ogrzewacz wysyła: [17][AA][CA00445B][00000085]... 
+                           └─ Typ 0xAA = tryb parowania/discovery
+3. DieselPilot przechwytuje adres pilota z bajtów [2-5]
+4. Zapisuje jako adres w pamięci
+5. Wysyła komendy: [09][2B][CA00445B][seq][CRC]
+6. Sterownik akceptuje ✓ (adres pasuje do whitelist)
+```
 
-1. **Ogrzewacz wysyła specjalną ramkę STATUS:**
-   - Adres: `0x00000000` (broadcast) LUB specjalny adres parowania
-   - Pakiet STATUS jest wysyłany w trybie "discovery"
-   - Oryginalny pilot nasłuchuje tych ramek przez ~60 sekund
+**Dlaczego DieselPilot i oryginalny pilot działają jednocześnie:**
+```
+Oryginalny Pilot   DieselPilot       Sterownik Ogrzewacza
+(0xCA00445B)       (0xCA00445B)      (Whitelist: 0xCA00445B)
+     │                  │                    │
+     │──[POWER]──>      │──[POWER]──>        │  ✓ Zaakceptowane
+     │                  │                    │
+     └── Oba używają TEGO SAMEGO adresu → oba działają! ──┘
+```
+Sterownik nie potrafi rozróżnić źródła — sprawdza tylko adres!
 
-2. **Pilot odpowiada weryfikacją:**
-   - Po odebraniu ramki STATUS, pilot weryfikuje "sygnaturę autentyczności"
-   - Sprawdza czy pakiet pochodzi z prawdziwego ogrzewacza (nie fejk)
-   - Jeśli weryfikacja OK → zapisuje adres i przechodzi do normalnej pracy
+#### ✏️ Ręczne Parowanie
 
-3. **Uwierzytelnienie:**
-   - Ogrzewacz używa specjalnych bajtów sygnatury w pakiecie STATUS
-   - Pilot sprawdza bajty `[16-20]` + counter w `[6]`
-   - Tylko prawdziwe ogrzewacze mogą wygenerować poprawną sygnaturę
+**Krok 1: Znajdź adres pilota**
+```bash
+# Nasłuchuj RTL-SDR podczas normalnej pracy
+rtl_433 -f 433920000 -s 250000 -R 0 \
+  -X "n=heater,m=FSK_PCM,s=100,l=100,r=10000,preamble=aa"
+
+# Znajdź pakiet STATUS (typ 0x00):
+7e3c7e3c 17 00 CA 00 44 5B 05 01 ...
+               ^─────────^ adres pilota!
+```
+
+**Krok 2: Wpisz w DieselPilot**
+- Pole Manual Pair: `0xCA00445B`
+- Kliknij MANUAL PAIR
+- Gotowe! DieselPilot będzie się podszywał pod ten pilot
+
+**⚠️ Ważne:**
+- To jest **adres pilota**, nie ogrzewacza
+- Klonujesz/podszywasz się pod istniejący sparowany pilot
+- Oryginalny pilot + DieselPilot będą oba działać (ten sam adres)
+- Jeśli sparujesz inny pilot z ogrzewaczem, ten adres przestanie działać
+
 
 #### 💡 Ciekawostka - Zachowanie oryginalnego pilota
 
@@ -472,7 +563,6 @@ sendCommand(HEATER_CMD_POWER);  // 0x2B
 // - Wysyłaj WAKEUP co 3-4s
 // - Sprawdzaj STATUS
 ```
-
 
 **Co się dzieje w tle:**
 ```
@@ -500,65 +590,6 @@ sendCommand(HEATER_CMD_POWER);  // 0x2B
 - Sync word: `0x7E3C` (powtórzony 2x)
 - Packet type STATUS: `0x00` (typ), `0x17` (23 bajty)
 - Adres: 32-bit w bajtach [2-5] po sync word
-
-#### Ręczne parowanie
-
-1. **Znajdź adres ogrzewacza:**
-   - Użyj RTL-SDR + rtl_433
-   - Nasłuchuj pakietów STATUS
-   - Wyciągnij bajty `[2-5]` (big-endian)
-   
-   **Przykład:**
-   ```
-   STATUS: 17 00 CA 00 44 5B 05 01 ...
-                ^  ^  ^  ^
-                |  |  |  └─ [5] = 0x5B
-                |  |  └──── [4] = 0x44
-                |  └─────── [3] = 0x00
-                └────────── [2] = 0xCA
-   
-   Adres = 0xCA00445B
-   ```
-
-2. **Wpisz w pole Manual Pair:** `0xCA00445B`
-3. **Kliknij MANUAL PAIR**
-4. Adres zostanie zapisany
-
-#### ⚠️ WAŻNE - Discovery Mode podczas parowania
-
-Gdy **przytrzymujesz przycisk parowania** na ogrzewaczu, mogą pojawić się **dwa typy pakietów**:
-
-**1. Discovery Packet (typ 0xAA)** - pojawia się TYLKO podczas parowania:
-```
-7e3c7e3c 17 AA CA 00 44 5B 00 00 00 85 05 00 04 ...
-         │  │  └─pilot addr─┘ └─special─┘
-         │  └─typ 0xAA (discovery!)
-         └─23 bajty
-
-```
-- Ogrzewacz "echo-uje" adres pilota który go wywołał
-- W bajtach [6-9] jest kod **0x00000085** (tryb parowania)
-- **NIE używaj tego adresu do konfiguracji!**
-
-**2. Normal STATUS (typ 0x00)** - to jest właściwy pakiet:
-```
-7e3c7e3c 17 00 CA 00 44 5B 05 01 00 83 0A ...
-         │  │  └──twój adres──┘
-         │  └─typ 0x00 (normalny STATUS)
-         └─23 bajty
-```
-- Adres w bajtach [2-5] to **właściwy adres ogrzewacza**
-- Tego adresu używaj do konfiguracji!
-
-**Jak to sprawdzić?**
-```bash
-# Uruchom rtl_433 i poczekaj 10 sekund
-# Pakiety STATUS (typ 0x00) pojawiają się co ~3 sekundy
-# Szukaj sekwencji: 7e3c7e3c 17 00 ...
-#                                 ^^ typ 0x00!
-```
-
-**Uwaga:** Każdy ogrzewacz ma **unikalny adres** - nie kopiuj adresu z tego README!
 
 
 ## 🛠️ Narzędzia do reverse engineering i debugowania
@@ -595,6 +626,43 @@ rtl_433 -f 433920000 -s 250000 -R 0 \
   "data": "7e3c7e3c1700ca00445b050100830a00981ecd1a..."
 }
 ```
+
+### 📊 Normalny pakiet STATUS (typ 0x00)
+
+**Surowy pakiet:**
+```
+7e3c7e3c 17 00 ca00445b 05 01 00 83 0a 00 98 1e cd 1a 00 00 e2 9c 44 3e ae 00 ed
+```
+
+**Dekodowanie krok po kroku:**
+
+| Bajty | Hex | Znaczenie | Wartość |
+|-------|-----|-----------|---------|
+| **Sync** | `7e 3c 7e 3c` | Sync Word | ✓ Poprawny |
+| **[0]** | `17` | Długość pakietu | 23 bajty |
+| **[1]** | `00` | Typ pakietu | STATUS (praca) |
+| **[2-5]** | `ca 00 44 5b` | Adres pilota | 0xCA00445B |
+| **[6]** | `05` | Stan | RUNNING (5) |
+| **[7]** | `01` | Moc | 1% |
+| **[8-9]** | `00 83` | Napięcie (BE) | 13.1V (131/10) |
+| **[10]** | `0a` | Temp. otoczenia | 10°C |
+| **[11]** | `00` | Błąd | OK (0) |
+| **[12]** | `98` | Temp. wymiennika | 152°C |
+| **[13]** | `1e` | Temp. zadana | 30°C |
+| **[14]** | `cd` | Tryb | MANUAL (0xCD) |
+| **[15]** | `1a` | Częst. pompy | 2.6 Hz (26/10) |
+| **[16-20]** | `00 00 e2 9c 44` | Sygnatura | [dane wewnętrzne] |
+| **[21-22]** | `3e ae` | CRC | ✓ Poprawny |
+
+**Interpretacja:**
+- 🟢 Ogrzewacz **PRACUJE** (RUNNING)
+- 🔥 Temperatura wymiennika: **152°C**
+- 🌡️ Temperatura otoczenia: **10°C**
+- 🎯 Temperatura zadana: **30°C**
+- ⚡ Napięcie: **13.1V**
+- 🔧 Tryb **MANUAL**, pompa **2.6 Hz**
+
+---
 
 ### 📻 SDR# + DVB-T Tuner - Wizualizacja widma
 
