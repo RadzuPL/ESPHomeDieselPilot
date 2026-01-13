@@ -1,0 +1,122 @@
+esphome:
+  name: diesel_pilot
+  platform: esp32
+  board: esp32dev
+  includes:
+    - diesel_pilot_component.h
+
+wifi:
+  ssid: "TWOJE_WIFI"
+  password: "TWOJE_HASLO"
+
+api:
+ota:
+logger:
+
+# Używamy Arduino SPI jak w oryginale, więc nie musisz deklarować spi:
+# ale możesz, to nie przeszkadza.
+spi:
+  clk_pin: GPIO18
+  mosi_pin: GPIO23
+  miso_pin: GPIO19
+
+# Custom component
+custom_component:
+  - lambda: |-
+      auto diesel = new DieselPilotComponent();
+      // PRZYKŁAD: wpisz tu swój znany adres nagrzewnicy:
+      // diesel->set_heater_address(0xCA00445B);
+      App.register_component(diesel);
+      return {diesel};
+
+# Sensory
+sensor:
+  - platform: template
+    name: "Diesel Heater Voltage"
+    id: heater_voltage
+    unit_of_measurement: "V"
+
+  - platform: template
+    name: "Diesel Heater Ambient"
+    id: heater_ambient
+    unit_of_measurement: "°C"
+
+  - platform: template
+    name: "Diesel Heater Case"
+    id: heater_case
+    unit_of_measurement: "°C"
+
+  - platform: template
+    name: "Diesel Heater Setpoint"
+    id: heater_setpoint
+    unit_of_measurement: "°C"
+
+  - platform: template
+    name: "Diesel Heater Pump"
+    id: heater_pump
+    unit_of_measurement: "Hz"
+
+  - platform: template
+    name: "Diesel Heater RSSI"
+    id: heater_rssi
+    unit_of_measurement: "dBm"
+
+text_sensor:
+  - platform: template
+    name: "Diesel Heater State"
+    id: heater_state
+
+  - platform: template
+    name: "Diesel Heater Mode"
+    id: heater_mode
+
+# Przyciski (zamiennik MQTT cmd/power, cmd/up, cmd/down, cmd/mode)
+button:
+  - platform: template
+    name: "Diesel Heater Power"
+    on_press:
+      then:
+        - lambda: |-
+            if (DieselPilotComponent::instance != nullptr)
+              DieselPilotComponent::instance->send_power();
+
+  - platform: template
+    name: "Diesel Heater Up"
+    on_press:
+      then:
+        - lambda: |-
+            if (DieselPilotComponent::instance != nullptr)
+              DieselPilotComponent::instance->send_up();
+
+  - platform: template
+    name: "Diesel Heater Down"
+    on_press:
+      then:
+        - lambda: |-
+            if (DieselPilotComponent::instance != nullptr)
+              DieselPilotComponent::instance->send_down();
+
+  - platform: template
+    name: "Diesel Heater Mode"
+    on_press:
+      then:
+        - lambda: |-
+            if (DieselPilotComponent::instance != nullptr)
+              DieselPilotComponent::instance->send_mode();
+
+# Powiązanie instancji z sensorami – weź to w on_boot:
+on_boot:
+  priority: -10
+  then:
+    - lambda: |-
+        auto d = DieselPilotComponent::instance;
+        if (d != nullptr) {
+          d->voltage_sensor  = id(heater_voltage);
+          d->ambient_sensor  = id(heater_ambient);
+          d->case_sensor     = id(heater_case);
+          d->setpoint_sensor = id(heater_setpoint);
+          d->pump_sensor     = id(heater_pump);
+          d->rssi_sensor     = id(heater_rssi);
+          d->state_text      = id(heater_state);
+          d->mode_text       = id(heater_mode);
+        }
