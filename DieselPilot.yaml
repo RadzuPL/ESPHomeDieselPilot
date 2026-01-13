@@ -50,7 +50,7 @@ wifi:
     password: !secret wifi2_password 
 
   manual_ip:
-    static_ip: !secret esp_sonoff_3_ip
+    static_ip: !secret diesel_heater_ip
     gateway: !secret gateway_ip
     subnet: !secret subnet_mask
     dns1: !secret dns_primary
