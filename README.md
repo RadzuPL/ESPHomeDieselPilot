@@ -25,3 +25,4 @@ Use at your own risk!!!!
 ⚠️ **WAŻNE:** 
 Używasz na własne ryzyko !!!!
 
+Based on PPTG/DieselPilot: https://github.com/PPTG/DieselPilot
