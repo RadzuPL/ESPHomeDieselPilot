@@ -176,6 +176,12 @@ GPIO5  - CSn
 3.3V   - VCC
 GND    - GND
 ```
+## 🚀 Rozwój projektu
+
+- Uruchomić hardware
+- Sprawdzić działanie
+- Spróbować przepisać szablon na gotowy komponent CC1101 w celu pomięcia pliku .h
+- Wprowadzać zmiany dodane w projekcie **PPTG/DieselPilot**
 
 ### 🙏 Podziękowania
 - **[PPTG/DieselPilot](https://github.com/PPTG/DieselPilot)** - projekt na podstawie którego powstał plik komunikacyjny.
