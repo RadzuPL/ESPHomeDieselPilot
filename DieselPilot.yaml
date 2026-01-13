@@ -1,79 +1,113 @@
+substitutions:
+  device_name: diesel-heater
+  friendly_name: Diesel Heater
+  device_description: "Webasto"
+  heater_address: 0xCA00445B
+
 esphome:
-  name: diesel_pilot
-  platform: esp32
-  board: esp32dev
+  name: ${device_name}
+  friendly_name: ${friendly_name}
+  comment: ${device_description}
+  project:
+    name: "radzu.diesel_heater"
+    version: "0.1"
   includes:
     - diesel_pilot_component.h
 
-wifi:
-  ssid: "TWOJE_WIFI"
-  password: "TWOJE_HASLO"
+  on_boot:
+    priority: 800 
+    then:
+      - lambda: |-
+          auto *diesel = new DieselPilotComponent();
+          diesel->set_heater_address(${heater_address});
+          App.register_component(diesel);
+          diesel->voltage_sensor  = id(heater_voltage);
+          diesel->ambient_sensor  = id(heater_ambient);
+          diesel->case_sensor     = id(heater_case);
+          diesel->setpoint_sensor = id(heater_setpoint);
+          diesel->pump_sensor     = id(heater_pump);
+          diesel->rssi_sensor     = id(heater_rssi);
+          diesel->state_text      = id(heater_state);
+          diesel->mode_text       = id(heater_mode);
 
-api:
-ota:
+# ---------- Board ---------
+
+esp32:
+  variant: esp32
+  board: esp32dev
+  framework:
+    type: arduino
+
+# ---------- Network ---------
+
+wifi:
+  networks:
+  - ssid: !secret wifi_ssid
+    password: !secret wifi_password
+    priority: 1.0
+
+  - ssid: !secret wifi2_ssid
+    password: !secret wifi2_password 
+
+  manual_ip:
+    static_ip: !secret esp_sonoff_3_ip
+    gateway: !secret gateway_ip
+    subnet: !secret subnet_mask
+    dns1: !secret dns_primary
+    dns2: !secret dns_secondary
+
+  power_save_mode: none
+
+  ap:
+    ssid: "${friendly_name} Fallback"
+    password: !secret ap_pw
+
+# ---------- Standard config ---------
+
 logger:
 
-# Używamy Arduino SPI jak w oryginale, więc nie musisz deklarować spi:
-# ale możesz, to nie przeszkadza.
-spi:
-  clk_pin: GPIO18
-  mosi_pin: GPIO23
-  miso_pin: GPIO19
+api:
+  encryption:
+    key: !secret encryption_key
+  reboot_timeout: 0s  
 
-# Custom component
-custom_component:
-  - lambda: |-
-      auto diesel = new DieselPilotComponent();
-      // PRZYKŁAD: wpisz tu swój znany adres nagrzewnicy:
-      // diesel->set_heater_address(0xCA00445B);
-      App.register_component(diesel);
-      return {diesel};
+web_server:
+  port: 80  
 
-# Sensory
-sensor:
-  - platform: template
-    name: "Diesel Heater Voltage"
-    id: heater_voltage
-    unit_of_measurement: "V"
+captive_portal:
+  
+ota:
+  - platform: esphome
+    password: !secret ota_password     
+  - platform: web_server
 
-  - platform: template
-    name: "Diesel Heater Ambient"
-    id: heater_ambient
-    unit_of_measurement: "°C"
+# ---------- Safety & Debug ---------
 
-  - platform: template
-    name: "Diesel Heater Case"
-    id: heater_case
-    unit_of_measurement: "°C"
+safe_mode:
+  boot_is_good_after: 2min
+  num_attempts: 5
+  reboot_timeout: 10min
 
-  - platform: template
-    name: "Diesel Heater Setpoint"
-    id: heater_setpoint
-    unit_of_measurement: "°C"
+debug:
+  update_interval: 30s
 
-  - platform: template
-    name: "Diesel Heater Pump"
-    id: heater_pump
-    unit_of_measurement: "Hz"
+# ---------- Status LED ---------
 
-  - platform: template
-    name: "Diesel Heater RSSI"
-    id: heater_rssi
-    unit_of_measurement: "dBm"
+status_led:
+  pin:
+    number: GPIO13
+    inverted: yes
 
-text_sensor:
-  - platform: template
-    name: "Diesel Heater State"
-    id: heater_state
+# ---------- Control Buttons ---------
 
-  - platform: template
-    name: "Diesel Heater Mode"
-    id: heater_mode
-
-# Przyciski (zamiennik MQTT cmd/power, cmd/up, cmd/down, cmd/mode)
 button:
+  - platform: restart
+    name: "Restart"
+    entity_category: diagnostic
+    icon: mdi:restart
+
   - platform: template
-    name: "Diesel Heater Power"
+    name: "${friendly_name} Power"
     on_press:
       then:
         - lambda: |-
@@ -81,7 +115,7 @@ button:
               DieselPilotComponent::instance->send_power();
 
   - platform: template
-    name: "Diesel Heater Up"
+    name: "${friendly_name} Up"
     on_press:
       then:
         - lambda: |-
@@ -89,7 +123,7 @@ button:
               DieselPilotComponent::instance->send_up();
 
   - platform: template
-    name: "Diesel Heater Down"
+    name: "${friendly_name} Down"
     on_press:
       then:
         - lambda: |-
@@ -97,26 +131,110 @@ button:
               DieselPilotComponent::instance->send_down();
 
   - platform: template
-    name: "Diesel Heater Mode"
+    name: "${friendly_name} Mode"
     on_press:
       then:
         - lambda: |-
             if (DieselPilotComponent::instance != nullptr)
               DieselPilotComponent::instance->send_mode();
 
-# Powiązanie instancji z sensorami – weź to w on_boot:
-on_boot:
-  priority: -10
-  then:
-    - lambda: |-
-        auto d = DieselPilotComponent::instance;
-        if (d != nullptr) {
-          d->voltage_sensor  = id(heater_voltage);
-          d->ambient_sensor  = id(heater_ambient);
-          d->case_sensor     = id(heater_case);
-          d->setpoint_sensor = id(heater_setpoint);
-          d->pump_sensor     = id(heater_pump);
-          d->rssi_sensor     = id(heater_rssi);
-          d->state_text      = id(heater_state);
-          d->mode_text       = id(heater_mode);
-        }
+# ---------- Diagnostic Sensors ---------
+
+sensor:
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    id: wifi_signal_db
+    update_interval: 60s
+    entity_category: diagnostic
+
+  - platform: copy
+    source_id: wifi_signal_db
+    name: "WiFi Signal %"
+    filters:
+      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
+    unit_of_measurement: "%"
+    entity_category: diagnostic
+    device_class: ""
+
+  - platform: uptime
+    type: timestamp
+    name: "Uptime"
+    entity_category: diagnostic
+
+  - platform: debug
+    free:
+      name: "Heap Free"
+      entity_category: diagnostic
+    loop_time:
+      name: "Loop Time"
+      entity_category: diagnostic
+
+  - platform: template
+    name: "${friendly_name} Voltage"
+    id: heater_voltage
+    unit_of_measurement: "V"
+
+  - platform: template
+    name: "${friendly_name} Ambient"
+    id: heater_ambient
+    unit_of_measurement: "°C"
+
+  - platform: template
+    name: "${friendly_name} Case"
+    id: heater_case
+    unit_of_measurement: "°C"
+
+  - platform: template
+    name: "${friendly_name} Setpoint"
+    id: heater_setpoint
+    unit_of_measurement: "°C"
+
+  - platform: template
+    name: "${friendly_name} Pump"
+    id: heater_pump
+    unit_of_measurement: "Hz"
+
+  - platform: template
+    name: "${friendly_name} RSSI"
+    id: heater_rssi
+    unit_of_measurement: "dBm"
+
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: "IP Address"
+      entity_category: diagnostic
+    mac_address:
+      name: "MAC Address"
+      entity_category: diagnostic
+
+  - platform: version
+    name: "ESPHome Version"
+    hide_timestamp: true
+    entity_category: diagnostic
+    icon: mdi:new-box
+
+  - platform: debug
+    reset_reason:
+      name: "Reset Reason"
+      entity_category: diagnostic
+
+  - platform: template
+    name: "${friendly_name} State"
+    id: heater_state
+
+  - platform: template
+    name: "${friendly_name} Mode"
+    id: heater_mode
+
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+    timezone: Europe/Warsaw
+
+# ---------- Main Device Function ---------
+
+spi:
+  clk_pin: GPIO18
+  mosi_pin: GPIO23
+  miso_pin: GPIO19
