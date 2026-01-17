@@ -1,0 +1,67 @@
+# ---------- Safety & Debug ---------
+
+safe_mode:
+  boot_is_good_after: 2min
+  num_attempts: 5
+  reboot_timeout: 10min
+
+debug:
+  update_interval: 30s
+# ---------- Control Buttons ---------
+
+button:
+  - platform: restart
+    name: "Restart"
+    entity_category: diagnostic
+    icon: mdi:restart
+
+# ---------- Diagnostic Sensors ---------
+
+sensor:
+  - platform: wifi_signal
+    name: "WiFi Signal"
+    id: wifi_signal_db
+    update_interval: 60s
+    entity_category: diagnostic
+
+  - platform: copy
+    source_id: wifi_signal_db
+    name: "WiFi Signal %"
+    filters:
+      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
+    unit_of_measurement: "%"
+    entity_category: diagnostic
+    device_class: ""
+
+  - platform: uptime
+    type: timestamp
+    name: "Uptime"
+    entity_category: diagnostic
+
+  - platform: debug
+    free:
+      name: "Heap Free"
+      entity_category: diagnostic
+    loop_time:
+      name: "Loop Time"
+      entity_category: diagnostic
+
+text_sensor:
+  - platform: wifi_info
+    ip_address:
+      name: "IP Address"
+      entity_category: diagnostic
+    mac_address:
+      name: "MAC Address"
+      entity_category: diagnostic
+
+  - platform: version
+    name: "ESPHome Version"
+    hide_timestamp: true
+    entity_category: diagnostic
+    icon: mdi:new-box
+
+  - platform: debug
+    reset_reason:
+      name: "Reset Reason"
+      entity_category: diagnostic
