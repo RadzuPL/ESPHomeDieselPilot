@@ -1,8 +1,12 @@
 substitutions:
   device_name: diesel-heater
   friendly_name: Diesel Heater
+  ip_address: !secret diesel_heater_ip
   device_description: "Webasto"
   heater_address: 0xCA00445B
+
+packages:
+  common_diag: !include common_diag.yaml
 
 esphome:
   name: ${device_name}
@@ -30,7 +34,7 @@ esphome:
           diesel->state_text      = id(heater_state);
           diesel->mode_text       = id(heater_mode);
 
-# ---------- Board ---------
+# ---------- Board config ---------
 
 esp32:
   variant: esp32
@@ -38,7 +42,7 @@ esp32:
   framework:
     type: arduino
 
-# ---------- Network ---------
+# ---------- Network config ---------
 
 wifi:
   networks:
@@ -50,7 +54,7 @@ wifi:
     password: !secret wifi2_password 
 
   manual_ip:
-    static_ip: !secret diesel_heater_ip
+    static_ip: ${ip_address}
     gateway: !secret gateway_ip
     subnet: !secret subnet_mask
     dns1: !secret dns_primary
@@ -98,13 +102,23 @@ status_led:
     number: GPIO13
     inverted: yes
 
+# ---------- Time synchronization ---------
+
+time:
+  - platform: homeassistant
+    id: homeassistant_time
+    timezone: Europe/Warsaw
+
+# ---------- Main Device Function ---------
+
+spi:
+  clk_pin: GPIO18
+  mosi_pin: GPIO23
+  miso_pin: GPIO19
+
 # ---------- Control Buttons ---------
 
 button:
-  - platform: restart
-    name: "Restart"
-    entity_category: diagnostic
-    icon: mdi:restart
 
   - platform: template
     name: "${friendly_name} Power"
@@ -138,37 +152,9 @@ button:
             if (DieselPilotComponent::instance != nullptr)
               DieselPilotComponent::instance->send_mode();
 
-# ---------- Diagnostic Sensors ---------
+# ---------- Main Sensors ---------
 
 sensor:
-  - platform: wifi_signal
-    name: "WiFi Signal"
-    id: wifi_signal_db
-    update_interval: 60s
-    entity_category: diagnostic
-
-  - platform: copy
-    source_id: wifi_signal_db
-    name: "WiFi Signal %"
-    filters:
-      - lambda: return min(max(2 * (x + 100.0), 0.0), 100.0);
-    unit_of_measurement: "%"
-    entity_category: diagnostic
-    device_class: ""
-
-  - platform: uptime
-    type: timestamp
-    name: "Uptime"
-    entity_category: diagnostic
-
-  - platform: debug
-    free:
-      name: "Heap Free"
-      entity_category: diagnostic
-    loop_time:
-      name: "Loop Time"
-      entity_category: diagnostic
-
   - platform: template
     name: "${friendly_name} Voltage"
     id: heater_voltage
@@ -199,25 +185,9 @@ sensor:
     id: heater_rssi
     unit_of_measurement: "dBm"
 
+# ---------- Main Text Sensors ---------
+
 text_sensor:
-  - platform: wifi_info
-    ip_address:
-      name: "IP Address"
-      entity_category: diagnostic
-    mac_address:
-      name: "MAC Address"
-      entity_category: diagnostic
-
-  - platform: version
-    name: "ESPHome Version"
-    hide_timestamp: true
-    entity_category: diagnostic
-    icon: mdi:new-box
-
-  - platform: debug
-    reset_reason:
-      name: "Reset Reason"
-      entity_category: diagnostic
 
   - platform: template
     name: "${friendly_name} State"
@@ -226,15 +196,3 @@ text_sensor:
   - platform: template
     name: "${friendly_name} Mode"
     id: heater_mode
-
-time:
-  - platform: homeassistant
-    id: homeassistant_time
-    timezone: Europe/Warsaw
-
-# ---------- Main Device Function ---------
-
-spi:
-  clk_pin: GPIO18
-  mosi_pin: GPIO23
-  miso_pin: GPIO19
